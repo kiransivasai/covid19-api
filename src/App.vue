@@ -14,134 +14,56 @@
           :limit-text="limitText"
         />
       </div>
-      <div class="filter-field">
-        <select v-model="filterStatus" id="status">
-          <option value="" disabled="disabled" selected="selected">
-            Select Status
-          </option>
-          <option value="confirmed">Confirmed</option>
-          <option value="deceased">Deceased</option>
-          <option value="recovered">Recovered</option>
-          <option value="tested">Tested</option>
-          <option value="vaccinated1">Vaccinated</option>
-        </select>
-        <select v-model="filterOperator" id="status">
-          <option value="" disabled="disabled" selected="selected">
-            Select Operator
-          </option>
-          <option value=">">&gt;</option>
-          <option value="<">&lt;</option>
-          <option value="=">&equals;</option>
-        </select>
-        <input
-          type="number"
-          v-model.number="filterValue"
-          placeholder="Enter value"
-        />
-      </div>
+      <FilterData />
     </div>
 
     <div class="tableData">
-      <table>
-        <tr>
-          <th>Sno</th>
-          <th>State</th>
-          <th @click="sortBy('tested')">Tested &udarr;</th>
-          <th @click="sortBy('confirmed')">Confirmed &udarr;</th>
-          <th @click="sortBy('deceased')">Deceased &udarr;</th>
-          <th @click="sortBy('recovered')">Recovered &udarr;</th>
-          <th @click="sortBy('vaccinated1')">Vaccinated &udarr;</th>
-        </tr>
-        <tr v-for="([scode, sdata], index) in displayedPages" :key="scode">
-          <td>{{ currentPage * 10 - perPage + index + 1 }}</td>
-          <td>{{ states[scode] }}</td>
-          <td>{{ sdata.total.tested }}</td>
-          <td>{{ sdata.total.confirmed }}</td>
-          <td>{{ sdata.total.deceased }}</td>
-          <td>{{ sdata.total.recovered }}</td>
-          <td>{{ sdata.total.vaccinated1 }}</td>
-        </tr>
-      </table>
+      <Table
+        @sortBy="sortBy"
+        :perPage="perPage"
+        :currentPage="currentPage"
+        :filteredTableData="filteredTableData"
+      />
     </div>
 
     <div class="pagination">
       <button @click="prevPage">Previous</button>
+      <button v-for="page in totalPages" @click="gotoPage(page)" :key="page">
+        {{ page }}
+      </button>
       <button @click="nextPage">Next</button>
     </div>
   </div>
 </template>
 
 <script>
-import axios from "axios";
 import Multiselect from "vue-multiselect";
+import { mapGetters, mapActions } from "vuex";
+import Table from "./components/UI/Table.vue";
+import FilterData from "./components/UI/FilterData.vue";
 
 export default {
   name: "app",
-  components: { Multiselect },
+  components: { Multiselect, Table, FilterData },
   data() {
     return {
-      states: {
-        AN: "Andaman and Nicobar Islands",
-        AP: "Andhra Pradesh",
-        AR: "Arunachal Pradesh",
-        AS: "Assam",
-        BR: "Bihar",
-        CH: "Chandigarh",
-        CT: "Chhattisgarh",
-        DN: "Dadra and Nagar Haveli",
-        DD: "Daman and Diu",
-        DL: "Delhi",
-        GA: "Goa",
-        GJ: "Gujarat",
-        HR: "Haryana",
-        HP: "Himachal Pradesh",
-        JK: "Jammu and Kashmir",
-        JH: "Jharkhand",
-        KA: "Karnataka",
-        KL: "Kerala",
-        LA: "Ladakh",
-        LD: "Lakshadweep",
-        MP: "Madhya Pradesh",
-        MH: "Maharashtra",
-        MN: "Manipur",
-        ML: "Meghalaya",
-        MZ: "Mizoram",
-        NL: "Nagaland",
-        OR: "Odisha",
-        PY: "Puducherry",
-        PB: "Punjab",
-        RJ: "Rajasthan",
-        SK: "Sikkim",
-        TN: "Tamil Nadu",
-        TG: "Telangana",
-        TR: "Tripura",
-        UP: "Uttar Pradesh",
-        UT: "Uttarakhand",
-        WB: "West Bengal"
-      },
-      covid_data: [],
       loading: false,
+      pages: [],
       currentPage: 1,
       perPage: 10,
-      pages: [],
       currentSort: "name",
       currentSortDir: "asc",
-      selectedStates: [],
-      filterStatus: "",
-      filterOperator: "",
-      filterValue: 0
+      selectedStates: []
     };
   },
 
   mounted() {
     this.isLoading = true;
-    axios.get("https://api.covid19india.org/v4/min/data.min.json").then(res => {
-      const { TT, ...rest } = res.data;
-      this.covid_data = Object.entries(rest);
-    });
+    this.getCovidData();
     this.isLoading = false;
   },
   methods: {
+    ...mapActions({ getCovidData: "getCovidData" }),
     limitText(count) {
       return `and ${count} other countries`;
     },
@@ -160,20 +82,24 @@ export default {
       if (this.currentPage * this.perPage < this.covid_data.length) {
         this.currentPage++;
       }
+    },
+    gotoPage(num) {
+      this.currentPage = num;
     }
   },
   computed: {
-    displayedPages() {
-      return this.covid_data
-        .sort((a, b) => {
-          let modifier = 1;
-          if (this.currentSortDir === "desc") modifier = -1;
-          if (a[1].total[this.currentSort] < b[1].total[this.currentSort])
-            return -1 * modifier;
-          if (a[1].total[this.currentSort] > b[1].total[this.currentSort])
-            return 1 * modifier;
-          return 0;
-        })
+    ...mapGetters({
+      covid_data: "covidData",
+      states: "getStates",
+      filterValue: "getFilterValue",
+      filterStatus: "getFilterStatus",
+      filterOperator: "getFilterOperator"
+    }),
+    totalPages() {
+      return Math.ceil(this.covid_data.length / this.perPage);
+    },
+    filteredTableData() {
+      const new_data = this.covid_data
         .filter((row, index) => {
           if (
             this.selectedStates.includes(this.states[row[0]]) ||
@@ -213,7 +139,17 @@ export default {
           let start = (this.currentPage - 1) * this.perPage;
           let end = this.currentPage * this.perPage;
           if (index >= start && index < end) return true;
+        })
+        .sort((a, b) => {
+          let modifier = 1;
+          if (this.currentSortDir === "desc") modifier = -1;
+          if (a[1].total[this.currentSort] < b[1].total[this.currentSort])
+            return -1 * modifier;
+          if (a[1].total[this.currentSort] > b[1].total[this.currentSort])
+            return 1 * modifier;
+          return 0;
         });
+      return new_data;
     }
   }
 };
