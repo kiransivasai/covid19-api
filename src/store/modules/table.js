@@ -65,7 +65,6 @@ const actions = {
       .get("https://api.covid19india.org/v4/min/data.min.json")
       .then((res) => {
         const { TT, ...rest } = res.data;
-        console.log(TT);
         commit("SET_COVID_DATA", Object.entries(rest));
       });
   },

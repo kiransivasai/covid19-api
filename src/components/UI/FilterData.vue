@@ -23,6 +23,7 @@
       v-model.number="filterValue"
       placeholder="Enter value"
     />
+    <button @click="resetAll">Reset</button>
   </div>
 </template>
 
@@ -33,14 +34,20 @@ export default {
     ...mapActions({
       updateFilterStatus: "updateFilterStatus",
       updateFilterValue: "updateFilterValue",
-      updateFilterOperator: "updateFilterOperator"
-    })
+      updateFilterOperator: "updateFilterOperator",
+    }),
+    resetAll() {
+      this.updateFilterStatus("");
+      this.updateFilterOperator("");
+      this.updateFilterValue(0);
+      this.$emit("resetAll");
+    },
   },
   computed: {
     ...mapGetters({
       getFilterStatus: "getFilterStatus",
       getFilterValue: "getFilterValue",
-      getFilterOperator: "getFilterOperator"
+      getFilterOperator: "getFilterOperator",
     }),
 
     filterValue: {
@@ -49,7 +56,7 @@ export default {
       },
       set(value) {
         this.updateFilterValue(value);
-      }
+      },
     },
     filterOperator: {
       get() {
@@ -57,7 +64,7 @@ export default {
       },
       set(value) {
         this.updateFilterOperator(value);
-      }
+      },
     },
     filterStatus: {
       get() {
@@ -65,9 +72,9 @@ export default {
       },
       set(value) {
         this.updateFilterStatus(value);
-      }
-    }
-  }
+      },
+    },
+  },
 };
 </script>
 

@@ -14,21 +14,29 @@
           :limit-text="limitText"
         />
       </div>
-      <FilterData />
+      <FilterData @resetAll="resetAll" />
     </div>
-
-    <div class="tableData">
-      <Table
-        @sortBy="sortBy"
-        :perPage="perPage"
-        :currentPage="currentPage"
-        :filteredTableData="filteredTableData"
-      />
-    </div>
+    <img
+      v-if="isLoading"
+      height="50"
+      src="./assets/loading.gif"
+      alt="Loading..."
+    />
+    <Table
+      @sortBy="sortBy"
+      :perPage="perPage"
+      :currentPage="currentPage"
+      :filteredTableData="filteredTableData"
+    />
 
     <div class="pagination">
       <button @click="prevPage">Previous</button>
-      <button v-for="page in totalPages" @click="gotoPage(page)" :key="page">
+      <button
+        v-for="page in totalPages"
+        :class="currentPage === page && 'active'"
+        @click="gotoPage(page)"
+        :key="page"
+      >
         {{ page }}
       </button>
       <button @click="nextPage">Next</button>
@@ -47,7 +55,7 @@ export default {
   components: { Multiselect, Table, FilterData },
   data() {
     return {
-      loading: false,
+      isLoading: false,
       pages: [],
       currentPage: 1,
       perPage: 10,
@@ -85,6 +93,10 @@ export default {
     },
     gotoPage(num) {
       this.currentPage = num;
+    },
+    resetAll() {
+      this.selectedStates = [];
+      this.currentSort = "name";
     },
   },
   computed: {
@@ -174,11 +186,22 @@ $primary: #4f5bff;
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      margin: 2px;
     }
     input {
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      margin: 2px;
+    }
+    button {
+      background-color: $primary;
+      color: white;
+      border: 0;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin: 2px;
+      cursor: pointer;
     }
   }
 }
@@ -196,6 +219,11 @@ $primary: #4f5bff;
     outline: none;
     cursor: pointer;
     margin-right: 10px;
+  }
+  .active {
+    background-color: white;
+    color: $primary;
+    border: 1px solid $primary;
   }
 }
 #app {
