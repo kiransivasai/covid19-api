@@ -62,6 +62,7 @@ export default {
       currentSort: "name",
       currentSortDir: "asc",
       selectedStates: [],
+      pageLength: 0,
     };
   },
 
@@ -87,7 +88,7 @@ export default {
       }
     },
     nextPage() {
-      if (this.currentPage * this.perPage < this.covid_data.length) {
+      if (this.currentPage * this.perPage < this.pageLength) {
         this.currentPage++;
       }
     },
@@ -98,19 +99,7 @@ export default {
       this.selectedStates = [];
       this.currentSort = "name";
     },
-  },
-  computed: {
-    ...mapGetters({
-      covid_data: "covidData",
-      states: "getStates",
-      filterValue: "getFilterValue",
-      filterStatus: "getFilterStatus",
-      filterOperator: "getFilterOperator",
-    }),
-    totalPages() {
-      return Math.ceil(this.covid_data.length / this.perPage);
-    },
-    filteredTableData() {
+    filterData() {
       const new_data = this.covid_data
         .filter((row, index) => {
           if (
@@ -147,11 +136,6 @@ export default {
             }
           }
         })
-        .filter((row, index) => {
-          let start = (this.currentPage - 1) * this.perPage;
-          let end = this.currentPage * this.perPage;
-          if (index >= start && index < end) return true;
-        })
         .sort((a, b) => {
           let modifier = 1;
           if (this.currentSortDir === "desc") modifier = -1;
@@ -161,7 +145,32 @@ export default {
             return 1 * modifier;
           return 0;
         });
+      this.pageLength = new_data.length;
+      if (this.totalPages < this.currentPage && this.totalPages > 0) {
+        this.currentPage = this.totalPages;
+      }
       return new_data;
+    },
+  },
+  computed: {
+    ...mapGetters({
+      covid_data: "covidData",
+      states: "getStates",
+      filterValue: "getFilterValue",
+      filterStatus: "getFilterStatus",
+      filterOperator: "getFilterOperator",
+    }),
+    totalPages() {
+      return Math.ceil(this.pageLength / this.perPage);
+    },
+    filteredTableData() {
+      const new_data = this.filterData();
+      const paginated_data = new_data.filter((row, index) => {
+        let start = (this.currentPage - 1) * this.perPage;
+        let end = this.currentPage * this.perPage;
+        if (index >= start && index < end) return true;
+      });
+      return paginated_data;
     },
   },
 };
